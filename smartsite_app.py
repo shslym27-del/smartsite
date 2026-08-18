@@ -10,6 +10,47 @@ from openpyxl.utils import get_column_letter
 
 st.set_page_config(page_title="SmartSite - 관급 공무 종합 생성기", layout="wide")
 
+# ============================================================
+# 접근 코드 검증 — 유료 구매자만 사용할 수 있도록 하는 최소한의 잠금장치
+# 실제 코드값은 Streamlit Cloud의 "Secrets"에 APP_PASSWORD로 저장하세요.
+# (Settings → Secrets, 코드에는 절대 실제 비밀번호를 적지 않습니다)
+# ============================================================
+
+def check_password():
+    def password_entered():
+        correct = st.secrets.get("APP_PASSWORD", None)
+        if correct is None:
+            # Secrets가 아직 설정되지 않은 경우 — 관리자에게만 보이는 안내
+            st.session_state["password_correct"] = False
+            st.session_state["no_secret_set"] = True
+            return
+        if st.session_state["password_input"] == correct:
+            st.session_state["password_correct"] = True
+            del st.session_state["password_input"]
+        else:
+            st.session_state["password_correct"] = False
+
+    if st.session_state.get("password_correct", False):
+        return True
+
+    st.title("🏗️ SmartSite")
+    st.caption("구매 시 안내받은 접근 코드를 입력해 주세요.")
+    st.text_input("접근 코드", type="password", on_change=password_entered, key="password_input")
+
+    if st.session_state.get("no_secret_set"):
+        st.warning(
+            "⚠️ 관리자 안내: Streamlit Cloud의 Settings → Secrets에 "
+            'APP_PASSWORD = "원하는코드" 를 추가해야 접근 코드가 작동합니다.'
+        )
+    elif "password_correct" in st.session_state and not st.session_state["password_correct"]:
+        st.error("코드가 올바르지 않습니다.")
+
+    return False
+
+
+if not check_password():
+    st.stop()
+
 st.title("🏗️ SmartSite - 건설 공무 통합 서식 자동 생성 시스템")
 st.caption(
     "관급공사 착공계 원본 서식(공문·표지·목차 포함)에 실제 값을 채워 넣고, "
